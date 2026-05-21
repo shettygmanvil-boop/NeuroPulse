@@ -1,5 +1,5 @@
 import React from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { HealthProvider } from './context/HealthContext'
 import Navbar from './components/Navbar'
 import Sidebar from './components/Sidebar'
@@ -14,12 +14,8 @@ import './App.css'
  * ═══════════════════════════════════════════════════════════════════════════
  * Main application router and layout orchestration.
  *
- * Responsibilities:
- * - Wraps entire app in HealthProvider for centralized state management
- * - Configures React Router with all primary routes
- * - Renders Navbar on all pages
- * - Conditionally renders Sidebar (hidden on LandingPage)
- * - Provides responsive layout structure with proper flex hierarchy
+ * Uses HashRouter so GitHub Pages serves all routes correctly without
+ * needing server-side rewrites (BrowserRouter deep links 404 on GH Pages).
  *
  * Routes:
  * - '/' → LandingPage (hero, CTAs)

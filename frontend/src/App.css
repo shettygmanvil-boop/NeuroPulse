@@ -516,3 +516,93 @@ input[type='range']::-moz-range-thumb {
     padding: 24px;
   }
 }
+
+/* ─── Error & Results ─────────────────────────────────────────────────────── */
+
+.np-error {
+  margin-top: 20px;
+  padding: 14px 18px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 8px;
+  color: #fca5a5;
+  font-size: 14px;
+}
+
+.np-results {
+  margin-top: 36px;
+  animation: fadeInUp 0.4s ease-out;
+}
+
+.np-result-card {
+  background: rgba(26, 26, 62, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(124, 92, 252, 0.2);
+  border-radius: 12px;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.3s ease;
+}
+
+.np-result-card:hover {
+  border-color: rgba(124, 92, 252, 0.4);
+  box-shadow: 0 0 30px rgba(124, 92, 252, 0.12);
+  transform: translateY(-3px);
+}
+
+.np-result-label {
+  color: #8888aa;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.np-result-value {
+  color: #a78bfa;
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.np-recommendations {
+  margin-top: 24px;
+}
+
+.np-recommendations h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #e4e4f7;
+  margin-bottom: 12px;
+}
+
+.np-recommendations ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.np-recommendations li {
+  color: #8888aa;
+  font-size: 14px;
+  padding: 10px 14px;
+  background: rgba(26, 26, 62, 0.4);
+  border-left: 3px solid #7c5cfc;
+  border-radius: 0 6px 6px 0;
+}
+
+/* Disabled state for form controls */
+textarea:disabled,
+input[type='range']:disabled,
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn.primary:disabled:hover {
+  box-shadow: 0 0 20px rgba(124, 92, 252, 0.3);
+  transform: none;
+}

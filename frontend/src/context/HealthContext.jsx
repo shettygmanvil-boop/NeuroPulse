@@ -5,26 +5,16 @@ import React, { createContext, useContext, useState, useCallback } from 'react'
  * ═══════════════════════════════════════════════════════════════════════════
  * Global state management for NeuroPulse health metrics and analysis.
  *
- * Manages:
- * - Input mode selection (smartwatch vs manual entry)
- * - Wellness scores (mental & physical)
- * - Journal analysis results (sentiment, emotions, burnout prediction)
- * - AI simulation results from slider inputs
- * - Async API communication with loading/error states
- *
- * Architecture:
- * - Centralized context provider wrapping the app
- * - useHealth() hook for component consumption
- * - Async functions with robust error handling and validation
+ * API base URL is read from VITE_API_URL env variable so it works in both
+ * local dev (proxied to localhost:3000) and production deployments.
+ * Falls back to '/api' to use the Vite dev proxy when not set.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+const API_BASE = import.meta.env.VITE_API_URL ?? '/api'
+
 const HealthContext = createContext(null)
 
-/**
- * HealthProvider Component
- * Initializes global state and provides async API methods.
- */
 export function HealthProvider({ children }) {
   // ─────────────────────────────────────────────────────────────────────────
   // Input Mode State
@@ -51,9 +41,10 @@ export function HealthProvider({ children }) {
   // Simulation Results
   // ─────────────────────────────────────────────────────────────────────────
   const [simulationResults, setSimulationResults] = useState({
-    predictedMentalScore: null,
-    predictedPhysicalScore: null,
-    recommendations: [],
+    mentalWellnessScore: null,
+    physicalWellnessScore: null,
+    prognosis: null,
+    prognosisError: null,
   })
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -68,16 +59,7 @@ export function HealthProvider({ children }) {
   // ─────────────────────────────────────────────────────────────────────────
   // Async Function: fetchJournalAnalysis
   // ─────────────────────────────────────────────────────────────────────────
-  /**
-   * Sends journal text to backend for analysis.
-   * Updates mentalScore, physicalScore, and journalData with API response.
-   *
-   * @param {string} textInput - User journal text to analyze
-   * @returns {Promise<void>}
-   * @throws Sets journalError state if request fails
-   */
   const fetchJournalAnalysis = useCallback(async (textInput) => {
-    // Validation
     if (!textInput || typeof textInput !== 'string' || textInput.trim().length === 0) {
       setJournalError('Journal input cannot be empty.')
       return
@@ -87,11 +69,9 @@ export function HealthProvider({ children }) {
     setJournalError(null)
 
     try {
-      const response = await fetch('http://localhost:3000/api/v1/analyze-journal', {
+      const response = await fetch(`${API_BASE}/v1/analyze-journal`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: textInput.trim() }),
       })
 
@@ -101,18 +81,12 @@ export function HealthProvider({ children }) {
 
       const data = await response.json()
 
-      // Validate response structure
       if (!data || typeof data !== 'object') {
         throw new Error('Invalid API response format')
       }
 
-      // Update state with API response
-      if (typeof data.mentalScore === 'number') {
-        setMentalScore(data.mentalScore)
-      }
-      if (typeof data.physicalScore === 'number') {
-        setPhysicalScore(data.physicalScore)
-      }
+      if (typeof data.mentalScore === 'number') setMentalScore(data.mentalScore)
+      if (typeof data.physicalScore === 'number') setPhysicalScore(data.physicalScore)
 
       setJournalData({
         sentiment: data.sentiment ?? null,
@@ -133,33 +107,34 @@ export function HealthProvider({ children }) {
   // Async Function: fetchSimulation
   // ─────────────────────────────────────────────────────────────────────────
   /**
-   * Sends slider values to backend for AI simulation.
-   * Updates simulationResults with predicted health outcomes.
+   * Sends lifestyle parameters to the backend simulation endpoint.
+   * Updates simulationResults with predicted wellness scores and prognosis.
    *
-   * @param {Object} sliderValues - Object with cognitive, sleep, stress properties (0-100)
-   * @returns {Promise<void>}
-   * @throws Sets simulationError state if request fails
+   * @param {Object} params
+   * @param {number}  params.sleepDuration       — hours per night (4–10)
+   * @param {number}  params.stepsWalked         — daily step count (0–15000)
+   * @param {boolean} params.smokingStatus       — true = active smoker
+   * @param {string}  params.alcoholConsumption  — "None" | "Occasional" | "Heavy"
+   * @param {number}  params.dailyCalorieIntake  — kcal per day (positive)
    */
-  const fetchSimulation = useCallback(async (sliderValues) => {
-    // Validation
-    if (!sliderValues || typeof sliderValues !== 'object') {
-      setSimulationError('Slider values must be an object.')
+  const fetchSimulation = useCallback(async (params) => {
+    if (!params || typeof params !== 'object') {
+      setSimulationError('Simulation parameters must be an object.')
       return
     }
 
-    const { cognitive, sleep, stress } = sliderValues
+    const { sleepDuration, stepsWalked, smokingStatus, alcoholConsumption, dailyCalorieIntake } = params
+
+    // Client-side validation mirrors the backend rules
+    const validAlcohol = ['None', 'Occasional', 'Heavy']
     if (
-      typeof cognitive !== 'number' ||
-      typeof sleep !== 'number' ||
-      typeof stress !== 'number'
+      typeof sleepDuration !== 'number' ||
+      typeof stepsWalked !== 'number' ||
+      typeof smokingStatus !== 'boolean' ||
+      !validAlcohol.includes(alcoholConsumption) ||
+      typeof dailyCalorieIntake !== 'number'
     ) {
-      setSimulationError('All slider values must be numbers.')
-      return
-    }
-
-    // Range validation (0-100)
-    if (cognitive < 0 || cognitive > 100 || sleep < 0 || sleep > 100 || stress < 0 || stress > 100) {
-      setSimulationError('Slider values must be between 0 and 100.')
+      setSimulationError('Invalid simulation parameters.')
       return
     }
 
@@ -167,29 +142,29 @@ export function HealthProvider({ children }) {
     setSimulationError(null)
 
     try {
-      const response = await fetch('http://localhost:3000/api/v1/simulate', {
+      const response = await fetch(`${API_BASE}/v1/simulate`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ cognitive, sleep, stress }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sleepDuration, stepsWalked, smokingStatus, alcoholConsumption, dailyCalorieIntake }),
       })
 
       if (!response.ok) {
-        throw new Error(`Backend returned status ${response.status}`)
+        const body = await response.json().catch(() => ({}))
+        throw new Error(body?.message ?? `Backend returned status ${response.status}`)
       }
 
-      const data = await response.json()
+      const json = await response.json()
+      const data = json?.data ?? json
 
-      // Validate response structure
       if (!data || typeof data !== 'object') {
         throw new Error('Invalid API response format')
       }
 
       setSimulationResults({
-        predictedMentalScore: data.predictedMentalScore ?? null,
-        predictedPhysicalScore: data.predictedPhysicalScore ?? null,
-        recommendations: Array.isArray(data.recommendations) ? data.recommendations : [],
+        mentalWellnessScore:   data.mentalWellnessScore   ?? null,
+        physicalWellnessScore: data.physicalWellnessScore ?? null,
+        prognosis:             data.prognosis             ?? null,
+        prognosisError:        data.prognosisError        ?? null,
       })
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
@@ -204,33 +179,20 @@ export function HealthProvider({ children }) {
   // Context Value
   // ─────────────────────────────────────────────────────────────────────────
   const value = {
-    // Input mode
     isSmartwatchMode,
     setIsSmartwatchMode,
-
-    // Wellness scores
     mentalScore,
     setMentalScore,
     physicalScore,
     setPhysicalScore,
-
-    // Journal data
     journalData,
     setJournalData,
-
-    // Simulation results
     simulationResults,
     setSimulationResults,
-
-    // Loading states
     isLoadingJournal,
     isLoadingSimulation,
-
-    // Error states
     journalError,
     simulationError,
-
-    // Async functions
     fetchJournalAnalysis,
     fetchSimulation,
   }
@@ -238,14 +200,6 @@ export function HealthProvider({ children }) {
   return <HealthContext.Provider value={value}>{children}</HealthContext.Provider>
 }
 
-/**
- * useHealth Hook
- * Accesses HealthContext from any component.
- * Throws if used outside HealthProvider.
- *
- * @returns {Object} Health context object with state and methods
- * @throws Error if not within HealthProvider
- */
 export function useHealth() {
   const ctx = useContext(HealthContext)
   if (!ctx) {
