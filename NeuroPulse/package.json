@@ -1,0 +1,16 @@
+{
+  "name": "neuropulse-backend",
+  "version": "1.0.0",
+  "description": "Modular Node.js backend for NeuroPulse healthcare application",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "firebase": "^10.12.0"
+  }
+}
